@@ -51,23 +51,45 @@ def seed_db(app, guard):
                  hashed_password=guard.hash_password("pestillo"),
                  roles=[roles[2]]),
         ]
-        owners = [
-            Owner(name="Juan Pérez", user=users[0]),
-            Owner(name="María López", user=users[1]),
+        countries = [
+            Country(name="Spain"),
+            Country(name="Portugal"),
+            Country(name="Italy"),
         ]
-        pets = [
-            Pet(name="Estrella", species="Perro", breed="Caniche", owner=owners[0]),
-            Pet(name="Petardo", species="Perro", breed="Galgo", owner=owners[1]),
-            Pet(name="Nala", species="Perro", breed="Galgo", owner=owners[1]),
-            Pet(name="Mora", species="Gato", breed="Egipcio", owner=owners[1]),
+        regions = [
+            Region(name="Andalucía", country=countries[0]),
+            Region(name="Alentejo", country=countries[1]),
+            Region(name="Piamonte", country=countries[2]),
         ]
+        localities = [
+            Locality(name="Cádiz", region=regions[0]),
+            Locality(name="Évora", region=regions[1]),
+            Locality(name="Turín", region=regions[2]),
+        ]
+        teams = [
+            Team(name="Equipo 1"),
+            Team(name="Equipo 2"),
+            Team(name="Equipo 3"),
+        ]
+        players = [
+            Player(name="Juan", user=users[0], locality=localities[0], teams=[teams[0]]),
+            Player(name="Maria", user=users[1], locality=localities[1], teams=[teams[0]]),
+            Player(name="Ana", user=users[2], locality=localities[2], teams=[teams[1]]),
+        ]
+
         # add data from lists
         for user in users:
             db.session.add(user)
-        for owner in owners:
-            db.session.add(owner)
-        for pet in pets:
-            db.session.add(pet)
+        for country in countries:
+            db.session.add(country)
+        for region in regions:
+            db.session.add(region)
+        for locality in localities:
+            db.session.add(locality)
+        for team in teams:
+            db.session.add(team)
+        for player in players:
+            db.session.add(player)
         # commit changes in database
         db.session.commit()
 
@@ -180,38 +202,88 @@ class Role(db.Model):
         return f"<Role {self.name}>"
 
 
-class Owner(db.Model):
-    """
-    Owner entity
+# table for N:M relationship
+teams_players = db.Table('teams_players',
+                         db.Column('team_id', db.Integer, db.ForeignKey('team.id'), primary_key=True),
+                         db.Column('player_id', db.Integer, db.ForeignKey('player.id'), primary_key=True)
+                         )
 
-    Store owner data
+
+class Team(db.Model):
+    """
+    Team entity
+
+    Store team data
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=False, nullable=False)
+
+    def __repr__(self):
+        return f"<Team {self.name}>"
+
+
+class Player(db.Model):
+    """
+    Player entity
+
+    Store player data
     """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    # TODO: test cascade behaviour
-    user = db.relationship("User", backref=db.backref("owner", uselist=False))
+    user = db.relationship("User", backref=db.backref("player", uselist=False))
+
+    locality_id = db.Column(db.Integer, db.ForeignKey('locality.id'))
+    locality = db.relationship("Locality", backref="players")
+
+    # M:N relationship
+    teams = db.relationship('Team', secondary=teams_players)
 
     def __repr__(self):
-        return f"<User {self.name}>"
+        return f"<Player {self.name}>"
 
 
-class Pet(db.Model):
+class Country(db.Model):
     """
-    Pet entity
+    Country entity
 
-    Store pet data
+    Store country data
     """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), unique=False, nullable=False)
-    species = db.Column(db.String(80), unique=False, nullable=True)
-    breed = db.Column(db.String(80), unique=False, nullable=True)
-    owner_id = db.Column(db.Integer, db.ForeignKey('owner.id'))
-    # TODO: test cascade behaviour
-    owner = db.relationship("Owner", backref="pets")
 
     def __repr__(self):
-        return f"<User {self.name}>"
+        return f"<Country {self.name}>"
+
+
+class Region(db.Model):
+    """
+    Region entity
+
+    Store region data
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=False, nullable=False)
+    country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
+    country = db.relationship("Country", backref="regions")
+
+    def __repr__(self):
+        return f"<Region {self.name}>"
+
+
+class Locality(db.Model):
+    """
+    Locality entity
+
+    Store locality data
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=False, nullable=False)
+    region_id = db.Column(db.Integer, db.ForeignKey('region.id'))
+    region = db.relationship("Region", backref="localities")
+
+    def __repr__(self):
+        return f"<Locality {self.name}>"
 
 
 # Marshmallow schemas definition
@@ -224,17 +296,41 @@ class UserSchema(SQLAlchemyAutoSchema):
         sqla_session = db.session
 
 
-class OwnerSchema(SQLAlchemyAutoSchema):
+class PlayerSchema(SQLAlchemyAutoSchema):
     class Meta:
-        model = Owner
+        model = Player
         include_relationships = True
         load_instance = True
         sqla_session = db.session
 
 
-class PetSchema(SQLAlchemyAutoSchema):
+class TeamSchema(SQLAlchemyAutoSchema):
     class Meta:
-        model = Pet
+        model = Team
+        include_relationships = True
+        load_instance = True
+        sqla_session = db.session
+
+
+class CountrySchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Country
+        include_relationships = True
+        load_instance = True
+        sqla_session = db.session
+
+
+class RegionSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Region
+        include_relationships = True
+        load_instance = True
+        sqla_session = db.session
+
+
+class LocalitySchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Locality
         include_relationships = True
         load_instance = True
         sqla_session = db.session
