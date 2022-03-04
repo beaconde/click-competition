@@ -72,9 +72,9 @@ def seed_db(app, guard):
             Team(name="Equipo 3"),
         ]
         players = [
-            Player(name="Juan", user=users[0], locality=localities[0], teams=[teams[0]]),
-            Player(name="Maria", user=users[1], locality=localities[1], teams=[teams[0]]),
-            Player(name="Ana", user=users[2], locality=localities[2], teams=[teams[1]]),
+            Player(name="Juan", user=users[0], locality=localities[0], clicks=50, teams=[teams[0]]),
+            Player(name="Maria", user=users[1], locality=localities[1], clicks=20, teams=[teams[0]]),
+            Player(name="Ana", user=users[2], locality=localities[2], clicks=85, teams=[teams[1]]),
         ]
 
         # add data from lists
@@ -235,6 +235,8 @@ class Player(db.Model):
 
     locality_id = db.Column(db.Integer, db.ForeignKey('locality.id'))
     locality = db.relationship("Locality", backref="players")
+
+    clicks = db.Column(db.Integer, nullable=False)
 
     # M:N relationship
     teams = db.relationship('Team', secondary=teams_players)

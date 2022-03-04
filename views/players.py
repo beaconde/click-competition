@@ -57,3 +57,14 @@ class PlayerListController(Resource):
         db.session.add(player)
         db.session.commit()
         return PlayerSchema().dump(player), 201
+
+
+@api_player.route("/score/<player_id>")
+class PlayerScoreController(Resource):
+    @flask_praetorian.auth_required
+    def post(self, player_id):
+        data = request.json
+        player = Player.query.get_or_404(player_id)
+        player.clicks += data['clicks']
+        db.session.commit()
+        return PlayerSchema().dump(player), 201
