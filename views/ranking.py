@@ -1,6 +1,6 @@
 import flask_praetorian
 import sqlalchemy
-from flask import request, jsonify
+from flask import jsonify
 from flask_restx import Resource, Namespace
 
 from model import db, Player, PlayerSchema
@@ -125,7 +125,7 @@ class RankingLocalitiesController(Resource):
                                  GROUP BY locality.name \
                                  ORDER BY clicks desc')
         result = db.session.execute(query)
-        return jsonify({res['name']: {'clicks': res['clicks']} for res in result})
+        return jsonify({res['name']: res['clicks'] for res in result})
 
 
 @api_ranking.route("/localities/<locality_id>")
